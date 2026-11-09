@@ -38,7 +38,9 @@ $mx_vals = json_encode([
         <?php foreach ($rows as $row):
             $row_priority = (int) $row->priority;
 
-            // Shared attributes for both arrows.
+            // Shared attributes for both arrows. The arrows are plain links,
+            // not buttons: the glyph is nothing but a triangle (&#9650; or
+            // &#9660;), and MX needs no more than the mx-post attribute.
             $move_attr = [
                 'class' => 'priority-arrow',
                 'mx-target' => '#articles-table',
@@ -46,29 +48,32 @@ $mx_vals = json_encode([
                 'mx-vals' => $mx_vals
             ];
 
-            // The arrows are disabled at the ends of the list, so the browser
-            // never sends a request that cannot change anything.
             $up_attr = $move_attr + [
                 'title' => 'Move up',
                 'aria-label' => 'Move '.$row->title.' up',
-                'mx-post' => 'articles/move_up/'.$row->id.'/'.$current_page,
-                'disabled' => ($row_priority <= $lowest_priority)
+                'mx-post' => 'articles/move_up/'.$row->id.'/'.$current_page
             ];
 
             $down_attr = $move_attr + [
                 'title' => 'Move down',
                 'aria-label' => 'Move '.$row->title.' down',
-                'mx-post' => 'articles/move_down/'.$row->id.'/'.$current_page,
-                'disabled' => ($row_priority >= $highest_priority)
+                'mx-post' => 'articles/move_down/'.$row->id.'/'.$current_page
             ];
+
+            // At the ends of the list the arrow is still drawn, but it is a
+            // plain span: there is no request to make, so none is offered.
+            $up_arrow = ($row_priority <= $lowest_priority)
+                ? '<span class="priority-arrow is-off" aria-hidden="true">&#9650;</span>'
+                : anchor('#', '&#9650;', $up_attr);
+
+            $down_arrow = ($row_priority >= $highest_priority)
+                ? '<span class="priority-arrow is-off" aria-hidden="true">&#9660;</span>'
+                : anchor('#', '&#9660;', $down_attr);
             ?>
             <tr>
                 <td class="priority-cell">
                     <span class="priority-number"><?= out((string) $row->priority) ?></span>
-                    <span class="priority-moves">
-                        <?= form_button('up_'.$row->id, '&#9650;', $up_attr) ?>
-                        <?= form_button('down_'.$row->id, '&#9660;', $down_attr) ?>
-                    </span>
+                    <span class="priority-arrows"><?= $up_arrow ?><?= $down_arrow ?></span>
                 </td>
                 <td class="text-left"><?= out($row->title) ?></td>
                 <td><?= anchor('articles/delete_conf/'.$row->id, 'Delete', ['class' => 'button alt']) ?></td>

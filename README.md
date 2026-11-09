@@ -1,12 +1,16 @@
 # Simple Priority Management — Trongate v2
 
-Reference implementation of click-to-reorder priority management for Trongate v2 modules: two small arrow buttons per row, an AJAX swap with no page reload, no drag-and-drop, no JavaScript of our own (Trongate MX does the wiring).
+Reference implementation of click-to-reorder priority management for Trongate v2 modules: two triangles per row (`&#9650;` / `&#9660;`), an AJAX swap with no page reload, no drag-and-drop, no JavaScript of our own (Trongate MX does the wiring).
 
 **This is a reference, not a package.** Nothing here is installable or designed to be used verbatim. It is a worked example of one technique. Copy the pattern out into your own module and adapt it to your columns, your table and your views.
 
 ## Using this repository as an AI reference
 
 If you are an AI coding agent asked to add priority management to an existing Trongate module:
+
+**Fastest route: [`PORTING.md`](PORTING.md).** Ten minutes, in order: the schema, the block to copy, the arrow markup, and the four checks that catch real bugs. Come back to this README only for the reasoning behind a step.
+
+If you want to understand the mechanism first:
 
 1. Read §1–§3 to understand the mechanism and the database contract.
 2. Read §5.1 (the portable model core) and §5.3/§5.4 (endpoints and view).
@@ -30,7 +34,7 @@ Priorities are kept normalised to `1..N` with no duplicates and no gaps. That gi
 | Insert | 1 row | New record gets `MAX(priority) + 1` (i.e. goes to the bottom) |
 | Delete | 1 delete + resequence | Close the gap the delete leaves |
 
-The UI is two trigger buttons per row. Each one fires a Trongate MX request; the endpoint performs the swap and returns **the whole table partial**, which MX swaps in with `mx-swap="outerHTML"`. The browser therefore never rebuilds the list itself — the server remains the single source of truth for both data and markup.
+The UI is two triangle triggers per row. Each one fires a Trongate MX request; the endpoint performs the swap and returns **the whole table partial**, which MX swaps in with `mx-swap="outerHTML"`. The browser therefore never rebuilds the list itself — the server remains the single source of truth for both data and markup.
 
 ## 2. Invariants
 
@@ -92,15 +96,17 @@ Ordering by `id` is only an example: use whatever column reflects the order you 
 ## 4. Repository contents
 
 ```
-README.md
+README.md                         The design, in full
+PORTING.md                        The short version: the job in order, for adapters
 sql/
   articles.sql                    Demo schema + seed data
+  verify_priorities.sql           Is the sequence sane? One query per check
 modules/articles/
   Articles.php                    Controller: manage page + 2 MX endpoints + create/delete
   Articles_model.php              Model: the priority core (§5.1) + demo CRUD
   views/
     manage.php                    Page shell (bare HTML - swap for your template)
-    table.php                     Table partial: the MX swap target and the arrow buttons
+    table.php                     Table partial: the MX swap target and the arrow triangles
     create.php                    Minimal create form
     delete_conf.php               Minimal delete confirmation
 ```
@@ -215,7 +221,7 @@ Points that matter:
 - The record id and the page number are the only URL input. A missing or unknown id is not an error: the swap quietly does nothing and the current page is re-rendered, which doubles as the "somebody else deleted this row" recovery path.
 - `$this->validation->run()` is called on *every* mutating method, including `submit_delete()`, which has no validation rules. It runs the CSRF check regardless of rules; without it, that form would be unprotected.
 
-### 5.4 View — the partial and the arrow buttons
+### 5.4 View — the partial and the arrow triangles
 
 `modules/articles/views/table.php` is rendered twice: inside the page, and as the entire response body of the endpoints. Three details are load-bearing.
 
@@ -249,7 +255,8 @@ $up_attr = $move_attr + [
 
 - `mx-vals` is a JSON object; MX appends each entry to the request body. That is how the CSRF token reaches an element that is not inside a `<form>`. Same session key (`$_SESSION['csrf_token']`) that `form_close()` uses.
 - `disabled` comes from `get_priority_bounds()`, so the top row's up arrow and the bottom row's down arrow cannot be clicked at all. The comparison uses `<=`/`>=` rather than `===` so it still behaves on data with gaps.
-- The buttons are real `<button>` elements (`form_button()`), not links and not drag handles: keyboard-focusable, touch-friendly, and they degrade to nothing harmful if MX never loads.
+- The arrows are plain `<a>` elements (`anchor('#', '&#9650;', $attr)`) holding nothing but the triangle entity — not `form_button()`. No button chrome, no icon font, no image. A link is still keyboard-focusable (Enter) and touch-friendly. `href="#"` is never followed, because MX calls `preventDefault()` on any element carrying an `mx-*` attribute.
+- **End of the list.** Where a move cannot happen, the arrow is rendered as `<span class="priority-arrow is-off" aria-hidden="true">&#9650;</span>` — same glyph, same position in the row, dimmed, and with no `mx-post`. `disabled` is not used: it is a no-op on a link, so a "disabled" anchor would still fire.
 
 **The whole table plus pagination is re-rendered.** Search filters, per-page selectors and anything else that shapes the list must be re-applied by `get_table_data()`, and its state must travel with the request (§8.4).
 
@@ -333,7 +340,7 @@ The table partial re-renders whatever `get_table_data()` returns, so:
 
 ### 8.5 Accessibility and UX
 
-Because reordering is two buttons rather than drag-and-drop, keyboard and touch users get the feature for free. Keep `title` and `aria-label` on the buttons (they name the record), keep `disabled` on the arrows that cannot do anything, and do not add drag-and-drop on top: it needs its own keyboard equivalent and it makes concurrent edits harder to reason about.
+Because reordering is two links rather than drag-and-drop, keyboard and touch users get the feature for free. Keep `title` and `aria-label` on the arrows (they name the record), render a non-link `<span>` at the ends of the list so nothing useless can be clicked, and do not add drag-and-drop on top: it needs its own keyboard equivalent and it makes concurrent edits harder to reason about.
 
 ## 9. Verification checklist
 

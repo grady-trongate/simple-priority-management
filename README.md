@@ -107,6 +107,15 @@ modules/articles/
 
 The module is self-contained but not installable: `views/manage.php`, `create.php` and `delete_conf.php` are deliberately bare HTML pages so the demo runs in any Trongate v2 app with no template dependency. In a real module those shells get replaced by your own template call (e.g. `$this->templates->admin($data)`).
 
+### 4.1 Running the demo
+
+1. Copy this repository's `modules/articles` directory into a Trongate v2 application's `modules/` directory.
+2. Import `sql/articles.sql` into a database and point `config/database.php` at it. **The script drops and recreates `articles`** — run it against a scratch database.
+3. In `config/config.php`, set `BASE_URL`, and optionally `DEFAULT_MODULE` to `articles` and `DEFAULT_METHOD` to `manage`.
+4. Browse to `/articles/manage`. The seed rows are listed in priority order with working arrows.
+
+No login or session setup is required, because the demo has no authentication (§7, step 7).
+
 ## 5. How the code works
 
 ### 5.1 Model — the portable core

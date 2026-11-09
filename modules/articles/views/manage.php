@@ -20,27 +20,27 @@
     <style>
         .priority-cell { white-space: nowrap; }
         .priority-number { display: inline-block; min-width: 1.5em; font-weight: bold; }
-        .priority-moves { display: inline-flex; gap: 0.35rem; vertical-align: middle; }
+        .priority-arrows { display: inline-flex; gap: 2px; vertical-align: middle; }
 
-        /* The arrows are real buttons, styled down to plain glyphs. */
+        /* The arrows are plain links holding nothing but a triangle. */
         .priority-arrow {
-            background: none;
-            border: 0;
-            border-radius: 0;
-            margin: 0;
-            padding: 0;
-            min-width: 0;
-            font-size: 0.8rem;
+            display: inline-block;
+            padding: 0 2px;
+            font-size: 0.75em;
+            font-weight: normal;
             line-height: 1;
+            text-decoration: none;
             color: #000;
             cursor: pointer;
-            transition: opacity 0.15s ease, transform 0.15s ease;
+            transition: opacity 0.15s ease;
         }
 
-        .priority-arrow:hover:not([disabled]),
-        .priority-arrow:focus-visible { opacity: 0.6; transform: scale(1.25); }
-        .priority-arrow:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
-        .priority-arrow[disabled] { opacity: 0.2; cursor: default; transform: none; }
+        .priority-arrow:hover,
+        .priority-arrow:focus-visible { opacity: 0.6; }
+        .priority-arrow:focus-visible { outline: 2px solid #000; outline-offset: 1px; }
+
+        /* End of the list: drawn, but not a link. */
+        .priority-arrow.is-off { opacity: 0.2; cursor: default; }
     </style>
 </head>
 <body>

@@ -119,7 +119,7 @@ class Articles extends Trongate {
      * The session CSRF token, for non-form triggers.
      *
      * Forms get a hidden csrf_token input automatically from form_close().
-     * The arrow buttons are not inside a form, so the token is handed to them
+     * The arrows are not inside a form, so the token is handed to them
      * through mx-vals instead. Same session key either way.
      */
     private function get_csrf_token(): string {

@@ -248,14 +248,17 @@ $move_attr = [
 $up_attr = $move_attr + [
     'title'      => 'Move up',
     'aria-label' => 'Move '.$row->title.' up',
-    'mx-post'    => 'articles/move_up/'.$row->id.'/'.$current_page,
-    'disabled'   => ($row_priority <= $lowest_priority)
+    'mx-post'    => 'articles/move_up/'.$row->id.'/'.$current_page
 ];
+
+$up_arrow = ($row_priority <= $lowest_priority)
+    ? '<span class="priority-arrow is-off" aria-hidden="true">&#9650;</span>'
+    : anchor('#', '&#9650;', $up_attr);
 ```
 
 - `mx-vals` is a JSON object; MX appends each entry to the request body. That is how the CSRF token reaches an element that is not inside a `<form>`. Same session key (`$_SESSION['csrf_token']`) that `form_close()` uses.
-- `disabled` comes from `get_priority_bounds()`, so the top row's up arrow and the bottom row's down arrow cannot be clicked at all. The comparison uses `<=`/`>=` rather than `===` so it still behaves on data with gaps.
-- The arrows are plain `<a>` elements (`anchor('#', '&#9650;', $attr)`) holding nothing but the triangle entity — not `form_button()`. No button chrome, no icon font, no image. A link is still keyboard-focusable (Enter) and touch-friendly. `href="#"` is never followed, because MX calls `preventDefault()` on any element carrying an `mx-*` attribute.
+- `$lowest_priority` / `$highest_priority` come from `get_priority_bounds()` and decide only *which markup to emit*: a link where the row can move, a `<span>` where it cannot. The comparison uses `<=`/`>=` rather than `===` so it still behaves on data with gaps. Never express this with `disabled`: see the last bullet below.
+- The arrows are plain `<a>` elements (`anchor('#', '&#9650;', $attr)`) holding nothing but the triangle entity — not `form_button()`. No button chrome, no icon font, no image. A link is still keyboard-focusable (Enter) and touch-friendly. `href="#"` is never followed, because MX calls `preventDefault()` on any element carrying an `mx-*` attribute. That guarantee depends on MX being loaded: `anchor()` prepends `BASE_URL`, so the real href is the base URL plus `#`, and without JavaScript a click would navigate there rather than do nothing.
 - **End of the list.** Where a move cannot happen, the arrow is rendered as `<span class="priority-arrow is-off" aria-hidden="true">&#9650;</span>` — same glyph, same position in the row, dimmed, and with no `mx-post`. `disabled` is not used: it is a no-op on a link, so a "disabled" anchor would still fire.
 
 **The whole table plus pagination is re-rendered.** Search filters, per-page selectors and anything else that shapes the list must be re-applied by `get_table_data()`, and its state must travel with the request (§8.4).
@@ -300,7 +303,7 @@ browser: mx-swap="outerHTML" replaces #articles-table with the response body
 3. **Insert.** Route every insert through `create_new_record()`, so nothing ever lands in the table without a priority. If your module also creates records elsewhere, fix those paths too.
 4. **Delete.** Route every delete through `delete_record()` so the gap gets closed.
 5. **Controller.** Add `move_up()` / `move_down()` (or one `move()` taking a direction), both calling `handle_move()`-style logic. Share one `get_table_data()` between the page method and the endpoints.
-6. **View.** Keep the wrapper div in the partial, keep `mx-target`/`mx-swap`/`mx-vals` consistent with it, keep `disabled` at the bounds, and put every list-shaping parameter into `mx-vals`.
+6. **View.** Keep the wrapper div in the partial, keep `mx-target`/`mx-swap`/`mx-vals` consistent with it, render a `<span>` instead of a link at the bounds, and put every list-shaping parameter into `mx-vals`.
 7. **Auth.** The demo has none. Wrap the endpoints in whatever check protects the rest of your module.
 
 ## 8. Integration considerations
@@ -349,7 +352,7 @@ Run these against your adapted implementation. Each has one expected result.
 | Check | Expected |
 |---|---|
 | Move the second row up | It swaps with the first; no duplicate priorities; list still `1..N` |
-| Move the first row up | Button disabled in the UI; if forced, server does nothing and returns the same list |
+| Move the first row up | Dimmed `<span>` at the top, not a link; if forced, server does nothing and returns the same list |
 | Move the last row down | Same, at the bottom |
 | Move a row on page 2 | Response is page 2, not page 1 |
 | Create a record | It appears at the bottom with `MAX(priority) + 1` |
